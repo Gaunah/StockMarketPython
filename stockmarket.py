@@ -7,12 +7,22 @@ with open("./api-key.txt", "r") as keyfile:
 
 ts = TimeSeries(key=api_key, output_format="pandas")
 
-symbol="amd"
+symbol = "AAPL"
 
 data, meta_data = ts.get_weekly_adjusted(symbol)
 data = data.sort_index()
 
-emaPeriod = 20
+source = data["5. adjusted close"]
 
-data["ema_"+str(emaPeriod)] = data["5. adjusted close"].ewm(span=emaPeriod).mean()
-print(data.iloc[-5:, [4,7]])
+#EMA
+emaPeriod = 13
+data["ema_"+str(emaPeriod)] = source.ewm(span=emaPeriod, min_periods=1).mean()
+
+#MACD
+macdPeriodFast=12
+macdPeriodSlow=26
+macdPeriodSignal=9
+
+test = data.iloc[-52:, [4, 7]]
+test.plot(title=str(symbol + " weekly"), grid=True)
+plt.show()
