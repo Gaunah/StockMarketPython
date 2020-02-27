@@ -1,7 +1,10 @@
 import pandas as pd
 from alpha_vantage.timeseries import TimeSeries
+import matplotlib.pyplot as plt
 
-api_key = ""
+with open("./api-key.txt", "r") as keyfile:
+    api_key = keyfile.readline().strip()
+
 ts = TimeSeries(key=api_key, output_format="pandas")
 
 symbol="amd"
