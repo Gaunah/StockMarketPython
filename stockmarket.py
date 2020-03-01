@@ -26,13 +26,13 @@ except FileNotFoundError:
     oldData = False
 
 if not oldData:
-    # ts = TimeSeries(key=api_key, output_format="pandas")
+    ts = TimeSeries(key=api_key, output_format="pandas")
     ti = TechIndicators(key=api_key, output_format="pandas")
 
     # get PriceData
-    # weekly_data, meta_data = ts.get_weekly_adjusted(symbol)
-    # del weekly_data["7. dividend amount"]
-    # weekly_data = weekly_data.sort_index()  # sort to newst date last
+    weekly_price, price_meta = ts.get_weekly_adjusted(symbol)
+    del weekly_price["7. dividend amount"]
+    weekly_price = weekly_price.sort_index()  # sort to newst date last
 
     # get MACD
     macd_weekly, macd_meta = ti.get_macd(symbol, interval="weekly",
@@ -45,7 +45,7 @@ if not oldData:
     ema13_weekly = ema13_weekly.sort_index()
 
     # join everything
-    weekly_data = macd_weekly.join(ema13_weekly)
+    weekly_data = weekly_price.join(macd_weekly.join(ema13_weekly))
 
     def elder_impulse(idx):
         if idx == 0:
@@ -69,8 +69,7 @@ if not oldData:
     # add Elder Impulse
     lenght = len(weekly_data.index)
     print("Calc elder impulse...")
-    weekly_data["Elder Impulse"] = [
-        colormap[elder_impulse(i)] for i in range(lenght)]
+    weekly_data["Elder Impulse"] = [elder_impulse(i) for i in range(lenght)]
 
     # save data
     try:
@@ -81,3 +80,9 @@ if not oldData:
 
 print()
 print(weekly_data.tail())
+
+elderNow = weekly_data["Elder Impulse"].iat[-1]
+elderLast = weekly_data["Elder Impulse"].iat[-2]
+signal = "buy signal" if elderNow > elderLast else (
+    "sell signal" if elderNow < elderLast else "neutral")
+print(signal)
