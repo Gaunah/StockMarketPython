@@ -1,5 +1,6 @@
 # my stuff
 api-key.txt
+data/
 .vscode/
 
 # Created by https://www.gitignore.io/api/python
