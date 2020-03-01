@@ -1,45 +1,46 @@
 import pandas as pd
+from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from matplotlib import pyplot as plt
 
 with open("./api-key.txt", "r") as keyfile:
     api_key = keyfile.readline().strip()
 
-ts = TimeSeries(key=api_key, output_format="pandas")
+# ts = TimeSeries(key=api_key, output_format="pandas")
+ti = TechIndicators(key=api_key, output_format="pandas")
 
-symbol = "AAPL"
+symbol = input("Enter stock ticker: ").upper()
 
-data, meta_data = ts.get_weekly_adjusted(symbol)
-del data["7. dividend amount"]
-data = data.sort_index()  # sort to newst date last
+# get PriceData
+# weekly_data, meta_data = ts.get_weekly_adjusted(symbol)
+# del weekly_data["7. dividend amount"]
+# weekly_data = weekly_data.sort_index()  # sort to newst date last
 
-source = data["5. adjusted close"]
+# get MACD
+macd_weekly, macd_meta = ti.get_macd(symbol, interval="weekly",
+                                     fastperiod=12, slowperiod=26, signalperiod=9)
+macd_weekly = macd_weekly.sort_index()
 
-# EMA
-emaPeriod = 13
-ema = source.ewm(span=emaPeriod, min_periods=1).mean()
-data["ema_"+str(emaPeriod)] = ema
+# get EMA
+ema13_weekly, ema13_meta = ti.get_ema(symbol, interval="weekly",
+                                      time_period=13)
+ema13_weekly = ema13_weekly.sort_index()
 
-# MACD
-macdPeriodFast = 12
-macdPeriodSlow = 26
-macdPeriodSignal = 9
+# join everything
+weekly_data = macd_weekly.join(ema13_weekly)
 
-macd_fast = source.ewm(span=macdPeriodFast, min_periods=1).mean()
-macd_slow = source.ewm(span=macdPeriodSlow, min_periods=1).mean()
-macd = macd_fast - macd_slow
-macd_signal = macd.ewm(span=macdPeriodSignal, min_periods=1).mean()
-macd_histo = macd - macd_signal
-data["macd"] = macd
-data["macd_signal"] = macd_signal
-data["macd_histo"] = macd_histo
 
 def elder_impulse(idx):
     if idx == 0:
         return 0
 
-    elder_bulls = (ema.iloc[idx] > ema.iloc[idx-1]) and (macd_histo.iloc[idx] > macd_histo.iloc[idx-1])
-    elder_bears = (ema.iloc[idx] < ema.iloc[idx-1]) and (macd_histo.iloc[idx] < macd_histo.iloc[idx-1])
+    emaCur = weekly_data["EMA"].iat[idx]
+    emaLast = weekly_data["EMA"].iat[idx-1]
+    mhCur = weekly_data["MACD_Hist"].iat[idx]
+    mhLast = weekly_data["MACD_Hist"].iat[idx-1]
+
+    elder_bulls = (emaCur > emaLast) and (mhCur > mhLast)
+    elder_bears = (emaCur < emaLast) and (mhCur < mhLast)
     # red = -1
     # blue = 0
     # green = 1
@@ -48,10 +49,9 @@ def elder_impulse(idx):
     return elder_color
 
 
-print(data.tail())
-print(elder_impulse(-2))
-print(elder_impulse(-1))
+colormap = {-1: "red", 0: "blue", 1: "green"}
+# add Elder Impulse
+lenght = len(weekly_data.index)
+weekly_data["Elder Impulse"] = [colormap[elder_impulse(i)] for i in range(lenght)]
 
-# figureData = data.iloc[-52:, [4, 7]] # last 52 weeks, close and ema
-# figureData.plot(title=str(symbol + " weekly"), grid=True)
-# plt.show()
+print(weekly_data.tail())
