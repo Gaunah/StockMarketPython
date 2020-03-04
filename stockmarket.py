@@ -5,8 +5,11 @@ from matplotlib import pyplot as plt
 from datetime import datetime
 import os
 
+workingDir = os.path.dirname(__file__)
+dataPath = workingDir + "/data/"
+
 try:
-    with open("./api-key.txt", "r") as keyfile:
+    with open(workingDir+"/api-key.txt", "r") as keyfile:
         api_key = keyfile.readline().strip()
 except FileNotFoundError as e:
     print(e)
@@ -19,7 +22,7 @@ filename = "weeklyData_" + symbol + date.strftime("_%Y-%m-%d_%H") + ".zip"
 # try to get saved data (if not older than an hour)
 oldData = True
 try:
-    weekly_data = pd.read_pickle("./data/" + filename)
+    weekly_data = pd.read_pickle(dataPath + filename)
     print("Use {} as datasource.".format(filename))
 except FileNotFoundError:
     print("Fetch new data...")
@@ -73,10 +76,10 @@ if not oldData:
 
     # save data
     try:
-        os.mkdir("./data")
+        os.mkdir(dataPath)
     except FileExistsError:
         pass
-    weekly_data.to_pickle("./data/" + filename)
+    weekly_data.to_pickle(dataPath + filename)
 
 print()
 print(weekly_data.tail())
